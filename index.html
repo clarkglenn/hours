@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hours</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --fg: #1d1d1f; --muted: #6b6b70;
+    --line: #e2e0db; --accent: #2f6f4f;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151516; --card: #1f1f21; --fg: #ececee; --muted: #9a9aa0;
+      --line: #333336; --accent: #6cc08f;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: var(--bg); color: var(--fg); padding: 16px;
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main {
+    width: 100%; max-width: 380px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 14px; padding: 24px;
+  }
+  h1 { margin: 0 0 20px; font-size: 1.25rem; font-weight: 600; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 14px; }
+  input {
+    display: block; width: 100%; margin-top: 6px; padding: 10px 12px;
+    font: inherit; font-size: 1.1rem; color: var(--fg); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .result {
+    margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--line);
+    text-align: center;
+  }
+  .big { font-size: 2.6rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .sub { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .err { color: #c0392b; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Hours worked</h1>
+  <div class="row">
+    <label>Start
+      <input id="start" type="time" value="08:00">
+    </label>
+    <label>End
+      <input id="end" type="time" value="16:30">
+    </label>
+  </div>
+  <label>Break (minutes)
+    <input id="brk" type="number" min="0" step="5" value="30" inputmode="numeric">
+  </label>
+  <div class="result" aria-live="polite">
+    <div class="big" id="hm">–</div>
+    <div class="sub" id="dec"></div>
+  </div>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const toMin = v => { const [h, m] = v.split(':').map(Number); return h * 60 + m; };
+
+  function calc() {
+    const s = $('start').value, e = $('end').value;
+    const brk = Math.max(0, Number($('brk').value) || 0);
+    const hm = $('hm'), dec = $('dec');
+    hm.classList.remove('err');
+    if (!s || !e) { hm.textContent = '–'; dec.textContent = ''; return; }
+
+    let span = toMin(e) - toMin(s);
+    if (span < 0) span += 24 * 60;               // shift past midnight
+    const total = span - brk;
+    if (total < 0) {
+      hm.textContent = 'Break too long';
+      hm.classList.add('err');
+      dec.textContent = '';
+      return;
+    }
+    const h = Math.floor(total / 60), m = total % 60;
+    hm.textContent = `${h}h ${String(m).padStart(2, '0')}m`;
+    dec.textContent = `${(total / 60).toFixed(2)} hours` + (span !== toMin(e) - toMin(s) ? ' · overnight' : '');
+  }
+
+  ['start', 'end', 'brk'].forEach(id => $(id).addEventListener('input', calc));
+  calc();
+</script>
+</body>
+</html>
